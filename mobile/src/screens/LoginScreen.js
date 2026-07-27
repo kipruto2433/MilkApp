@@ -1,15 +1,36 @@
 
-import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, { useState, useContext, useEffect } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, useWindowDimensions } from 'react-native';
 import { AuthContext } from '../auth/AuthContext';
 import Feather from '@expo/vector-icons/Feather';
+import { checkBackendHealth } from '../api';
+import { isHostedWebWithoutApi } from '../config';
 
 export default function LoginScreen({ navigation }) {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [connectionState, setConnectionState] = useState('checking');
   const { signIn } = useContext(AuthContext);
+  const { width } = useWindowDimensions();
+  const isWide = width >= 720;
+
+  const checkConnection = async () => {
+    if (isHostedWebWithoutApi) {
+      setConnectionState('configuration');
+      return;
+    }
+    setConnectionState('checking');
+    try {
+      await checkBackendHealth();
+      setConnectionState('online');
+    } catch {
+      setConnectionState('offline');
+    }
+  };
+
+  useEffect(() => { checkConnection(); }, []);
 
   const onSubmit = async () => {
     if (!phone || !password) {
@@ -33,7 +54,7 @@ export default function LoginScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scrollContent, isWide && styles.scrollContentWide]} keyboardShouldPersistTaps="handled">
         {/* Figma green banner header */}
         <View style={styles.headerContainer}>
           <View style={styles.logoCircle}>
@@ -44,7 +65,13 @@ export default function LoginScreen({ navigation }) {
         </View>
 
         {/* Form Container */}
-        <View style={styles.formContainer}>
+        <View style={[styles.formContainer, isWide && styles.formContainerWide]}>
+          <Pressable style={[styles.connectionBadge, connectionState === 'online' && styles.connectionOnline, connectionState === 'offline' && styles.connectionOffline]} onPress={checkConnection}>
+            <Feather name={connectionState === 'online' ? 'wifi' : connectionState === 'checking' ? 'loader' : 'wifi-off'} size={14} color={connectionState === 'online' ? '#107C41' : '#A16207'} />
+            <Text style={[styles.connectionText, connectionState === 'online' && styles.connectionTextOnline]}>
+              {connectionState === 'online' ? 'Server connected' : connectionState === 'checking' ? 'Checking server…' : connectionState === 'configuration' ? 'API URL needs configuration' : 'Server unavailable — tap to retry'}
+            </Text>
+          </Pressable>
           
           <Text style={styles.inputLabel}>Phone number</Text>
           <View style={styles.inputContainer}>
@@ -86,7 +113,7 @@ export default function LoginScreen({ navigation }) {
         </View>
 
         {/* Bottom Signup Link */}
-        <Pressable style={styles.signupLink} onPress={() => navigation.navigate('Signup')}>
+        <Pressable style={[styles.signupLink, isWide && styles.signupLinkWide]} onPress={() => navigation.navigate('Signup')}>
           <Text style={styles.signupText}>Are you a milk collector? <Text style={styles.signupLinkText}>Sign Up</Text></Text>
         </Pressable>
       </ScrollView>
@@ -103,6 +130,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 40,
   },
+  scrollContentWide: { paddingHorizontal: 24 },
   headerContainer: {
     backgroundColor: '#1B432E',
     borderBottomLeftRadius: 36,
@@ -141,6 +169,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 32,
   },
+  formContainerWide: { width: '100%', maxWidth: 520, alignSelf: 'center' },
+  connectionBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6, backgroundColor: '#FEF3D6', borderRadius: 99, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 4 },
+  connectionOnline: { backgroundColor: '#E6F7EB' },
+  connectionOffline: { backgroundColor: '#FEE2E2' },
+  connectionText: { color: '#A16207', fontSize: 12, fontWeight: '700' },
+  connectionTextOnline: { color: '#107C41' },
   inputLabel: {
     color: '#1B432E',
     fontSize: 13,
@@ -239,6 +273,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     alignItems: 'center',
   },
+  signupLinkWide: { width: '100%', maxWidth: 520, alignSelf: 'center' },
   signupText: {
     color: '#737373',
     fontSize: 14,

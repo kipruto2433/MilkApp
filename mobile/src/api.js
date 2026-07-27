@@ -26,6 +26,8 @@ export function setAuthToken(token) {
   }
 }
 
+export const checkBackendHealth = () => api.get('/health', { timeout: 5000 });
+
 const authHeader = (token) => ({
   headers: { Authorization: `Bearer ${token}` },
 });

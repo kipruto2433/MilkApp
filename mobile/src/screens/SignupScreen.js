@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, useWindowDimensions } from 'react-native';
 import { AuthContext } from '../auth/AuthContext';
 import Feather from '@expo/vector-icons/Feather';
 
@@ -12,6 +12,8 @@ export default function SignupScreen({ navigation }) {
   const [error, setError] = useState('');
   
   const { signUp } = useContext(AuthContext);
+  const { width } = useWindowDimensions();
+  const isWide = width >= 720;
 
   const onSubmit = async () => {
     if (!name || !phone || !password || !confirmPassword) {
@@ -46,7 +48,7 @@ export default function SignupScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scrollContainer, isWide && styles.scrollContainerWide]} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -56,7 +58,7 @@ export default function SignupScreen({ navigation }) {
           <View style={{ width: 24 }} />
         </View>
 
-        <View style={styles.formContainer}>
+        <View style={[styles.formContainer, isWide && styles.formContainerWide]}>
           <Text style={styles.formHint}>Collector account signup only</Text>
 
           <Text style={styles.inputLabel}>Full Name</Text>
@@ -134,6 +136,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 40,
   },
+  scrollContainerWide: { paddingHorizontal: 24 },
   header: {
     backgroundColor: '#1B432E',
     height: 96,
@@ -157,6 +160,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20,
   },
+  formContainerWide: { width: '100%', maxWidth: 520, alignSelf: 'center' },
   inputLabel: {
     color: '#1B432E',
     fontSize: 12,

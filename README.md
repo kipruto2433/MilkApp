@@ -73,8 +73,18 @@ This repository contains the initial scaffold for a mobile-first milk collection
    npm start
    ```
 
+### Hosted web deployment
+
+The frontend and API are separate services. Configure the web build with the public backend URL before deploying:
+
+```env
+EXPO_PUBLIC_API_BASE_URL=https://your-api.example.com
+```
+
+The API must expose `GET /api/health`; the login page shows its connection status and lets users retry. Confirm the deployed API responds with `{ "status": "ok" }` before publishing the frontend.
+
 Notes:
-- The mobile app `src/api.js` uses `http://10.0.2.2:4000` by default for Android emulator. If running Expo on the same machine (LAN), change `BASE_URL` to `http://localhost:4000` in `mobile/src/api.js`.
+- The mobile app uses `http://10.0.2.2:4000` by default for Android emulator and `http://localhost:4000` locally on web. Set `EXPO_PUBLIC_API_BASE_URL` for a deployed web app.
 - Use the seeded admin account to login: Phone: `0733333333` / Password: `adminpass`.
 - Collector accounts can be created through the mobile app signup flow or by an admin user.
 

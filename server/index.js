@@ -10,6 +10,7 @@ const collectorRoutes = require('./routes/collectors');
 const settingsRoutes = require('./routes/settings');
 const logsRoutes = require('./routes/logs');
 const reportsRoutes = require('./routes/reports');
+const db = require('./config/db');
 
 dotenv.config();
 
@@ -27,6 +28,17 @@ app.use('/api/collectors', collectorRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/reports', reportsRoutes);
+
+// Used by the web client to show whether it can reach a working API.
+app.get('/api/health', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.json({ status: 'ok', database: 'connected' });
+  } catch (error) {
+    console.error('Health check failed', error);
+    res.status(503).json({ status: 'unavailable', database: 'disconnected' });
+  }
+});
 
 app.get('/', (req, res) => {
   res.json({ message: 'MilkApp backend is running.' });

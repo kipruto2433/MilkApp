@@ -59,10 +59,11 @@ function AppNavigator() {
 export default function App() {
   const { width } = useWindowDimensions();
   const isLargeScreen = Platform.OS === 'web' && width >= 768;
+  const isDesktop = Platform.OS === 'web' && width >= 1200;
 
   return (
-    <View style={styles.page}>
-      <View style={[styles.appFrame, isLargeScreen && styles.appFrameLarge]}>
+    <View style={[styles.page, isLargeScreen && styles.pageWide]}>
+      <View style={[styles.appFrame, isLargeScreen && styles.appFrameLarge, isDesktop && styles.appFrameDesktop]}>
         <AuthProvider>
           <AppNavigator />
         </AuthProvider>
@@ -77,6 +78,10 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#E9F1EA',
   },
+  pageWide: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
   appFrame: {
     flex: 1,
     height: '100%',
@@ -90,5 +95,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 8 },
+  },
+  appFrameDesktop: {
+    borderRadius: 24,
   },
 });
