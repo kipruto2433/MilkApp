@@ -74,10 +74,12 @@ export default function App() {
 const styles = StyleSheet.create({
   page: {
     flex: 1,
+    height: '100%',
     backgroundColor: '#E9F1EA',
   },
   appFrame: {
     flex: 1,
+    height: '100%',
     width: '100%',
     overflow: 'hidden',
   },
