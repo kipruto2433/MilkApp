@@ -4,4 +4,5 @@ mobile/node_modules/
 *.log
 .env
 .expo/
+mobile/dist/
 .DS_Store

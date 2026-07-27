@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">MilkTrack</title>
+  <rect width="512" height="512" rx="104" fill="#1B432E"/>
+  <path d="M256 86c-49 68-112 129-112 213 0 62 50 112 112 112s112-50 112-112C368 215 305 154 256 86Z" fill="#E9F1EA"/>
+  <path d="M256 172c-26 39-55 75-55 119 0 30 24 55 55 55s55-25 55-55c0-44-29-80-55-119Z" fill="#85B68C"/>
+  <circle cx="218" cy="265" r="12" fill="#1B432E" opacity=".8"/>
+  <circle cx="294" cy="265" r="12" fill="#1B432E" opacity=".8"/>
+</svg>

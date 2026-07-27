@@ -1,0 +1,25 @@
+{
+  "name": "MilkTrack - Milk Collection",
+  "short_name": "MilkTrack",
+  "description": "Digital milk collection and management system.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#E9F1EA",
+  "theme_color": "#1B432E",
+  "icons": [
+    {
+      "src": "/icons/milktrack-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/milktrack-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

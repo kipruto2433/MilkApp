@@ -8,6 +8,11 @@
       "android",
       "web"
     ],
-    "sdkVersion": "54.0.0"
+    "sdkVersion": "54.0.0",
+    "web": {
+      "name": "MilkTrack",
+      "shortName": "MilkTrack",
+      "output": "single"
+    }
   }
 }

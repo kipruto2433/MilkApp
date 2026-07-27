@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthProvider, AuthContext } from './src/auth/AuthContext';
@@ -57,9 +57,36 @@ function AppNavigator() {
 }
 
 export default function App() {
+  const { width } = useWindowDimensions();
+  const isLargeScreen = Platform.OS === 'web' && width >= 768;
+
   return (
-    <AuthProvider>
-      <AppNavigator />
-    </AuthProvider>
+    <View style={styles.page}>
+      <View style={[styles.appFrame, isLargeScreen && styles.appFrameLarge]}>
+        <AuthProvider>
+          <AppNavigator />
+        </AuthProvider>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  page: {
+    flex: 1,
+    backgroundColor: '#E9F1EA',
+  },
+  appFrame: {
+    flex: 1,
+    width: '100%',
+    overflow: 'hidden',
+  },
+  appFrameLarge: {
+    maxWidth: 1440,
+    alignSelf: 'center',
+    shadowColor: '#1B432E',
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+  },
+});
