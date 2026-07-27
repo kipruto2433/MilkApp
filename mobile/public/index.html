@@ -14,11 +14,14 @@
     <link rel="apple-touch-icon" href="/icons/milktrack-icon.svg" />
     <title>MilkTrack</title>
     <style>
-      html, body, #root { min-height: 100%; margin: 0; }
+      /* React Native Web's flex layouts need a definite root height. Using
+         only min-height lets the navigator mount while its screens collapse
+         to zero height, leaving a blank page. */
+      html, body, #root { width: 100%; height: 100%; min-height: 100%; margin: 0; }
       body { background: #E9F1EA; }
       @media (min-width: 768px) {
         body { padding: 16px; box-sizing: border-box; }
-        #root { min-height: calc(100vh - 32px); }
+        #root { height: calc(100vh - 32px); min-height: calc(100vh - 32px); }
       }
     </style>
     <script>
