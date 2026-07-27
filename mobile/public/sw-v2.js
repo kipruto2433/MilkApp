@@ -1,5 +1,5 @@
 // This distinct worker URL replaces the original self-cached worker.
-const CACHE_NAME = 'milktrack-shell-v3';
+const CACHE_NAME = 'milktrack-shell-v4';
 const APP_SHELL = ['/', '/manifest.json', '/icons/milktrack-icon.svg', '/icons/milktrack-maskable.svg'];
 
 self.addEventListener('install', (event) => {
@@ -22,24 +22,18 @@ self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
-        .then((response) => {
-          caches.open(CACHE_NAME).then((cache) => cache.put('/', response.clone()));
-          return response;
-        })
+        .then((response) => response)
         .catch(() => caches.match('/'))
     );
     return;
   }
 
-  // Keep an offline fallback, but always request current application code.
+  // App code is always returned from the network. Do not cache a response
+  // here: Cache Storage consumes response bodies and can race the browser's
+  // use of the same stream, which caused the blank screen on launch.
   event.respondWith(
     fetch(event.request)
-      .then((response) => {
-        if (response.ok) {
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
-        }
-        return response;
-      })
+      .then((response) => response)
       .catch(() => caches.match(event.request))
   );
 });
