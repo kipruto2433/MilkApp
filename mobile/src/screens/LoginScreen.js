@@ -2,7 +2,7 @@
 import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { AuthContext } from '../auth/AuthContext';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 
 export default function LoginScreen({ navigation }) {
   const [phone, setPhone] = useState('');

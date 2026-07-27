@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Pressable, ActivityIndicator, Platform } from 'react-native';
 import { fetchCollections, fetchPayments } from '../api';
 import { AuthContext } from '../auth/AuthContext';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 
 export default function FarmerHomeScreen() {
   const { token, user, signOut } = useContext(AuthContext);

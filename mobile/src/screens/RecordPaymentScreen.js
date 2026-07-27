@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Alert, ScrollView, ActivityIndicator, Modal, FlatList } from 'react-native';
 import { AuthContext } from '../auth/AuthContext';
 import { createPayment, fetchFarmers } from '../api';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 
 export default function RecordPaymentScreen({ route, navigation }) {
   const { token } = useContext(AuthContext);

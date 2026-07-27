@@ -11,13 +11,16 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     (async () => {
-      const { token: storedToken, user: storedUser } = await loadAuth();
-      if (storedToken) {
-        setAuthToken(storedToken);
-        setToken(storedToken);
-        setUser(storedUser);
+      try {
+        const { token: storedToken, user: storedUser } = await loadAuth();
+        if (storedToken) {
+          setAuthToken(storedToken);
+          setToken(storedToken);
+          setUser(storedUser);
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, []);
 

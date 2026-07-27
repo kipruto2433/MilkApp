@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { AuthContext } from '../auth/AuthContext';
 import { createFarmer } from '../api';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 
 export default function CreateFarmerScreen({ navigation }) {
   const { token } = useContext(AuthContext);

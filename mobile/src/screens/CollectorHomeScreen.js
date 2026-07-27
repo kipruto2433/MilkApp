@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView, Alert, ActivityIndicator
 import { useFocusEffect } from '@react-navigation/native';
 import { fetchFarmers, fetchCollections, fetchPayments, createCollection, fetchReports, changePassword } from '../api';
 import { AuthContext } from '../auth/AuthContext';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { saveCachedFarmers, getCachedFarmers, getPendingCollections, clearPendingCollections, saveCollectorPrice, getCollectorPrice, saveCollectorPaymentSchedule, getCollectorPaymentSchedule } from '../utils/storage';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';

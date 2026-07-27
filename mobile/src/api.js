@@ -3,8 +3,20 @@ import { API_BASE_URL } from './config';
 
 const api = axios.create({
   baseURL: API_BASE_URL + '/api',
-  timeout: 10000,
+  timeout: 7000,
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.code === 'ECONNABORTED') {
+      error.message = 'The server took too long to respond. Please try again.';
+    } else if (!error.response && error.message === 'Network Error') {
+      error.message = 'Unable to reach the server. Check your connection and try again.';
+    }
+    return Promise.reject(error);
+  }
+);
 
 export function setAuthToken(token) {
   if (token) {

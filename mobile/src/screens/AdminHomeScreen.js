@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Modal, TextInput, ActivityIndicator, Platform, Switch } from 'react-native';
 import { fetchFarmers, fetchCollections, fetchPayments, fetchCollectors, createCollector, deleteCollector, deleteFarmer, changePassword, getSettings, updateSettings, getLogs, fetchReports } from '../api';
 import { AuthContext } from '../auth/AuthContext';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 

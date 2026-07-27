@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator, ScrollView, Modal, FlatList } from 'react-native';
 import { AuthContext } from '../auth/AuthContext';
 import { createCollection, fetchFarmers } from '../api';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { getCachedFarmers, savePendingCollection, getCollectorPrice } from '../utils/storage';
 
 export default function RecordCollectionScreen({ route, navigation }) {
