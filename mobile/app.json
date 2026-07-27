@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "MilkApp",
+    "slug": "milkapp",
+    "version": "1.0.0",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "sdkVersion": "54.0.0"
+  }
+}
