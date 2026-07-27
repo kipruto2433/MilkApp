@@ -24,7 +24,10 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/sw.js').catch(function (error) {
+          // Use a new worker URL so installations controlled by the original
+          // cache-first worker can fetch this update instead of serving the
+          // worker it cached for itself.
+          navigator.serviceWorker.register('/sw-v2.js').catch(function (error) {
             console.warn('Service worker registration failed:', error);
           });
         });
