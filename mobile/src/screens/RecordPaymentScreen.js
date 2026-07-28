@@ -172,6 +172,7 @@ export default function RecordPaymentScreen({ route, navigation }) {
               <Feather name="phone" size={20} color="#737373" style={{ marginRight: 8 }} />
               <Text style={styles.textInput}>{user?.phone || 'Collector phone unavailable'}</Text>
             </View>
+            <Text style={styles.stkHint}>Sandbox mode sends the simulated prompt to the configured Daraja test number.</Text>
           </>
         )}
 
@@ -368,6 +369,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
     padding: 0,
+  },
+  stkHint: {
+    color: '#737373',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 8,
   },
   methodRow: {
     flexDirection: 'row',

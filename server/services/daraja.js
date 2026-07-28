@@ -1,4 +1,6 @@
 const DARAJA_BASE_URL = process.env.DARAJA_BASE_URL || 'https://sandbox.safaricom.co.ke';
+const isSandbox = process.env.DARAJA_ENV === 'sandbox' || DARAJA_BASE_URL.includes('sandbox.safaricom.co.ke');
+const DARAJA_SANDBOX_PHONE = process.env.DARAJA_SANDBOX_PHONE || '254708374149';
 
 function normalizePhone(phone) {
   const digits = String(phone || '').replace(/\D/g, '');
@@ -51,9 +53,9 @@ async function initiateStkPush({ phone, amount, accountReference, transactionDes
       Timestamp: timestamp,
       TransactionType: 'CustomerPayBillOnline',
       Amount: Math.round(Number(amount)),
-      PartyA: normalizePhone(phone),
+      PartyA: normalizePhone(isSandbox ? DARAJA_SANDBOX_PHONE : phone),
       PartyB: process.env.DARAJA_SHORTCODE,
-      PhoneNumber: normalizePhone(phone),
+      PhoneNumber: normalizePhone(isSandbox ? DARAJA_SANDBOX_PHONE : phone),
       CallBackURL: process.env.DARAJA_CALLBACK_URL,
       AccountReference: accountReference,
       TransactionDesc: transactionDesc,
