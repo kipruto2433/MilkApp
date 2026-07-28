@@ -1,12 +1,12 @@
 const express = require('express');
 const db = require('../config/db');
 const { authenticate, authorize } = require('../middleware/auth');
-const { initiateStkPush, sendB2CPayment, normalizePhone } = require('../services/daraja');
+const { initiateStkPush, normalizePhone } = require('../services/daraja');
 
 const router = express.Router();
 
 router.post('/', authenticate, authorize(['collector']), async (req, res) => {
-  const { farmer_id, amount, payment_date, method = 'mpesa', notes, payment_flow = 'payout', phone_number } = req.body;
+  const { farmer_id, amount, payment_date, method = 'mpesa', notes } = req.body;
   if (!farmer_id || !amount || !payment_date) {
     return res.status(400).json({ error: 'Farmer ID, amount, and payment_date are required' });
   }
@@ -22,22 +22,21 @@ router.post('/', authenticate, authorize(['collector']), async (req, res) => {
     let status = 'pending';
     let mpesaTransactionId = null;
 
-    const paymentPhone = normalizePhone(phone_number || farmer.phone);
+    let paymentPhone = farmer.phone;
     if (method.toLowerCase() === 'mpesa') {
-      if (payment_flow === 'receive') {
-        const stkResponse = await initiateStkPush({
-          phone: paymentPhone,
-          amount,
-          accountReference: `MILK-${farmer_id}`,
-          transactionDesc: 'Milk supply payment',
-        });
-        status = 'pending';
-        mpesaTransactionId = stkResponse.CheckoutRequestID;
-      } else {
-        const payoutResponse = await sendB2CPayment({ phone: paymentPhone, amount, remarks: notes });
-        status = 'pending';
-        mpesaTransactionId = payoutResponse.ConversationID || payoutResponse.OriginatorConversationID;
+      const collectorResult = await db.query(`SELECT phone FROM users WHERE id = $1 AND role = 'collector'`, [req.user.id]);
+      if (collectorResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Collector phone number not found' });
       }
+      paymentPhone = normalizePhone(collectorResult.rows[0].phone);
+      const stkResponse = await initiateStkPush({
+        phone: paymentPhone,
+        amount,
+        accountReference: `MILK-${farmer_id}`,
+        transactionDesc: `Milk payment for farmer ${farmer_id}`,
+      });
+      status = 'pending';
+      mpesaTransactionId = stkResponse.CheckoutRequestID;
     } else {
       status = 'paid';
     }
@@ -56,7 +55,7 @@ router.post('/', authenticate, authorize(['collector']), async (req, res) => {
     ]);
 
     const logQuery = `INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)`;
-    await db.query(logQuery, [req.user.id, payment_flow === 'receive' ? 'INITIATE_STK_PAYMENT' : 'INITIATE_MPESA_PAYOUT', `Initiated ${payment_flow} of KSh ${amount} via ${method} for farmer ID ${farmer_id}`]);
+    await db.query(logQuery, [req.user.id, method.toLowerCase() === 'mpesa' ? 'INITIATE_STK_PAYMENT' : 'RECORD_PAYMENT', `Initiated payment of KSh ${amount} via ${method} for farmer ID ${farmer_id}`]);
 
     res.status(201).json({ payment: result.rows[0] });
   } catch (err) {

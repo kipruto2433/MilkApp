@@ -5,7 +5,7 @@ import { createPayment, fetchFarmers } from '../api';
 import Feather from '@expo/vector-icons/Feather';
 
 export default function RecordPaymentScreen({ route, navigation }) {
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
   const routeFarmerId = route?.params?.farmerId;
 
   const [farmers, setFarmers] = useState([]);
@@ -13,8 +13,6 @@ export default function RecordPaymentScreen({ route, navigation }) {
   const [amount, setAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [method, setMethod] = useState('mpesa'); // 'mpesa' | 'cash'
-  const [paymentFlow, setPaymentFlow] = useState('payout');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -61,21 +59,17 @@ export default function RecordPaymentScreen({ route, navigation }) {
 
     setLoading(true);
     try {
-      const response = await createPayment(token, {
+      await createPayment(token, {
         farmer_id: selectedFarmer.id,
         amount: parseFloat(amount),
         payment_date: paymentDate,
         method,
-        payment_flow: paymentFlow,
-        phone_number: phoneNumber || selectedFarmer.phone,
         notes,
       });
 
-      Alert.alert('Success', paymentFlow === 'receive' && method === 'mpesa'
-        ? 'STK push sent. Ask the farmer to approve it on their phone.'
-        : response.data.payment.status === 'pending'
-          ? 'M-Pesa payout submitted and awaiting confirmation.'
-          : 'Payment recorded successfully.');
+      Alert.alert('Success', method === 'mpesa'
+        ? `STK push sent to ${user?.phone || 'your registered M-Pesa number'}. Approve it to record the payment for ${selectedFarmer.name}.`
+        : 'Payment recorded successfully.');
       navigation.goBack();
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Unable to record payment.');
@@ -155,15 +149,6 @@ export default function RecordPaymentScreen({ route, navigation }) {
         </View>
 
         {/* Method Selector */}
-        <Text style={styles.inputLabel}>Transaction</Text>
-        <View style={styles.methodRow}>
-          <Pressable style={[styles.methodButton, paymentFlow === 'payout' && styles.methodButtonActive]} onPress={() => setPaymentFlow('payout')}>
-            <Text style={[styles.methodButtonText, paymentFlow === 'payout' && styles.methodButtonTextActive]}>Pay Farmer</Text>
-          </Pressable>
-          <Pressable style={[styles.methodButton, paymentFlow === 'receive' && styles.methodButtonActive]} onPress={() => setPaymentFlow('receive')}>
-            <Text style={[styles.methodButtonText, paymentFlow === 'receive' && styles.methodButtonTextActive]}>Receive Payment</Text>
-          </Pressable>
-        </View>
         <Text style={styles.inputLabel}>Payment Method</Text>
         <View style={styles.methodRow}>
           <Pressable
@@ -182,10 +167,10 @@ export default function RecordPaymentScreen({ route, navigation }) {
 
         {method === 'mpesa' && (
           <>
-            <Text style={styles.inputLabel}>{paymentFlow === 'receive' ? 'Number to receive STK prompt' : 'Farmer M-Pesa number'}</Text>
+            <Text style={styles.inputLabel}>STK Prompt Number</Text>
             <View style={styles.inputContainer}>
               <Feather name="phone" size={20} color="#737373" style={{ marginRight: 8 }} />
-              <TextInput style={styles.textInput} value={phoneNumber} onChangeText={setPhoneNumber} placeholder={selectedFarmer?.phone || '0712 345 678'} placeholderTextColor="#A3A3A3" keyboardType="phone-pad" />
+              <Text style={styles.textInput}>{user?.phone || 'Collector phone unavailable'}</Text>
             </View>
           </>
         )}
@@ -213,7 +198,7 @@ export default function RecordPaymentScreen({ route, navigation }) {
           {loading ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={styles.saveButtonText}>{paymentFlow === 'receive' && method === 'mpesa' ? 'Send STK Prompt' : 'Initiate Payment'}</Text>
+            <Text style={styles.saveButtonText}>{method === 'mpesa' ? 'Send STK Prompt' : 'Initiate Payment'}</Text>
           )}
         </Pressable>
       </ScrollView>
