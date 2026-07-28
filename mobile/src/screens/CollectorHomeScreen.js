@@ -185,6 +185,95 @@ export default function CollectorHomeScreen({ navigation }) {
     }
   };
 
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;',
+  }[character]));
+
+  const generateFarmerTransactionsPdf = async (selectedPayment) => {
+    const farmerTransactions = payments
+      .filter((payment) => payment.farmer_id === selectedPayment.farmer_id)
+      .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date));
+    const farmer = farmers.find((item) => item.id === selectedPayment.farmer_id);
+    const farmerName = selectedPayment.farmer_name || farmer?.name || 'Farmer';
+    const paidTotal = farmerTransactions
+      .filter((payment) => payment.status === 'paid' || payment.status === 'completed')
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const pendingTotal = farmerTransactions
+      .filter((payment) => payment.status !== 'paid' && payment.status !== 'completed')
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const money = (amount) => Number(amount || 0).toLocaleString('en-KE', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const rows = farmerTransactions.map((payment) => `
+      <tr>
+        <td>${escapeHtml(new Date(payment.payment_date).toLocaleDateString('en-KE', { year: 'numeric', month: 'short', day: 'numeric' }))}</td>
+        <td>${escapeHtml((payment.method || '-').toUpperCase())}</td>
+        <td>${escapeHtml(payment.mpesa_transaction_id || `PAY-${payment.id}`)}</td>
+        <td>${escapeHtml(payment.status || 'pending')}</td>
+        <td class="amount">KSh ${money(payment.amount)}</td>
+      </tr>`).join('');
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>${escapeHtml(farmerName)} Payment Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: #262626; padding: 32px; }
+            h1 { color: #1B432E; margin: 0 0 6px; }
+            .subtitle { color: #737373; margin: 0 0 24px; }
+            .summary { display: table; width: 100%; margin: 20px 0 28px; border: 1px solid #C5D9C8; border-radius: 10px; overflow: hidden; }
+            .summary div { display: table-cell; padding: 14px; border-right: 1px solid #EAF0EB; }
+            .summary div:last-child { border-right: 0; }
+            .label { display: block; color: #737373; font-size: 11px; text-transform: uppercase; margin-bottom: 5px; }
+            .value { color: #1B432E; font-size: 17px; font-weight: bold; }
+            table { border-collapse: collapse; width: 100%; }
+            th { background: #1B432E; color: white; text-align: left; padding: 11px; font-size: 12px; }
+            td { border-bottom: 1px solid #EAF0EB; padding: 11px; font-size: 12px; }
+            .amount { text-align: right; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>Farmer Payment Report</h1>
+          <p class="subtitle"><strong>${escapeHtml(farmerName)}</strong>${farmer?.farmer_code ? ` | ${escapeHtml(farmer.farmer_code)}` : ''}${farmer?.phone ? ` | ${escapeHtml(farmer.phone)}` : ''}<br>Generated ${escapeHtml(new Date().toLocaleString())}</p>
+          <section class="summary">
+            <div><span class="label">Transactions</span><span class="value">${farmerTransactions.length}</span></div>
+            <div><span class="label">Paid</span><span class="value">KSh ${money(paidTotal)}</span></div>
+            <div><span class="label">Pending</span><span class="value">KSh ${money(pendingTotal)}</span></div>
+          </section>
+          <table>
+            <thead><tr><th>Date</th><th>Method</th><th>Reference</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead>
+            <tbody>${rows || '<tr><td colspan="5">No transactions found.</td></tr>'}</tbody>
+          </table>
+        </body>
+      </html>`;
+
+    try {
+      if (Platform.OS === 'web') {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) throw new Error('Unable to open the print window.');
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 500);
+      } else {
+        const { uri } = await Print.printToFileAsync({ html: htmlContent });
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+      }
+    } catch (error) {
+      console.warn('Farmer transaction report PDF failed:', error);
+      Alert.alert('PDF Error', 'Unable to generate the farmer transaction report.');
+    }
+  };
+
   const exportCollectorReportPDF = async () => {
     try {
       const htmlContent = `
@@ -672,6 +761,15 @@ export default function CollectorHomeScreen({ navigation }) {
                       </View>
                     </View>
                   </View>
+                  <Pressable
+                    style={styles.farmerReportButton}
+                    onPress={() => generateFarmerTransactionsPdf(payment)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Generate payment report for ${payment.farmer_name || 'farmer'}`}
+                  >
+                    <Feather name="file-text" size={14} color="#1B432E" />
+                    <Text style={styles.farmerReportButtonText}>Farmer report</Text>
+                  </Pressable>
                 </View>
               );
             })
@@ -1470,6 +1568,22 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#1B432E',
     marginBottom: 4,
+  },
+  farmerReportButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#EAF0EB',
+  },
+  farmerReportButtonText: {
+    color: '#1B432E',
+    fontSize: 12,
+    fontWeight: '700',
   },
   profileSettingCard: {
     backgroundColor: '#FFFFFF',
