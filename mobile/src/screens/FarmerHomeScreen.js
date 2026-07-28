@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, Alert, Pressable, ActivityIndicator
 import { fetchCollections, fetchPayments } from '../api';
 import { AuthContext } from '../auth/AuthContext';
 import Feather from '@expo/vector-icons/Feather';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 export default function FarmerHomeScreen() {
   const { token, user, signOut } = useContext(AuthContext);
@@ -46,6 +48,57 @@ export default function FarmerHomeScreen() {
     if (!name) return 'F';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
+
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;',
+  }[character]));
+
+  const openPdfReport = async (title, htmlContent) => {
+    try {
+      if (Platform.OS === 'web') {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) throw new Error('Unable to open the print window.');
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 500);
+      } else {
+        const { uri } = await Print.printToFileAsync({ html: htmlContent });
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+      }
+    } catch (error) {
+      console.warn(`${title} PDF failed:`, error);
+      Alert.alert('PDF Error', `Unable to generate the ${title.toLowerCase()}.`);
+    }
+  };
+
+  const generateDeliveriesPdf = () => {
+    const sortedDeliveries = [...collections].sort((a, b) => new Date(b.collected_at) - new Date(a.collected_at));
+    const totalValue = sortedDeliveries.reduce((sum, item) => sum + Number(item.total_amount || 0), 0);
+    const rows = sortedDeliveries.map((item) => `
+      <tr><td>${escapeHtml(new Date(item.collected_at).toLocaleDateString('en-KE', { year: 'numeric', month: 'short', day: 'numeric' }))}</td><td>${escapeHtml(item.collector_name || 'N/A')}</td><td>${Number(item.liters || 0).toFixed(2)} L</td><td class="amount">KSh ${Number(item.total_amount || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td></tr>`).join('');
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Milk Deliveries Report</title><style>${reportStyles}</style></head><body><h1>Milk Deliveries Report</h1><p class="subtitle"><strong>${escapeHtml(user?.name || 'Farmer')}</strong> | ${escapeHtml(user?.phone || 'N/A')}<br>Generated ${escapeHtml(new Date().toLocaleString())}</p><section class="summary"><div><span class="label">Deliveries</span><span class="value">${sortedDeliveries.length}</span></div><div><span class="label">Total milk</span><span class="value">${totalLiters.toFixed(2)} L</span></div><div><span class="label">Total value</span><span class="value">KSh ${totalValue.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span></div></section><table><thead><tr><th>Date</th><th>Collector</th><th>Milk delivered</th><th style="text-align:right">Value</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+    openPdfReport('Milk Deliveries Report', htmlContent);
+  };
+
+  const generatePaymentsPdf = () => {
+    const sortedPayments = [...payments].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date));
+    const received = sortedPayments.filter((item) => item.status === 'paid' || item.status === 'completed').reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const pending = sortedPayments.filter((item) => item.status !== 'paid' && item.status !== 'completed').reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const rows = sortedPayments.map((item) => `
+      <tr><td>${escapeHtml(new Date(item.payment_date).toLocaleDateString('en-KE', { year: 'numeric', month: 'short', day: 'numeric' }))}</td><td>${escapeHtml((item.method || '-').toUpperCase())}</td><td>${escapeHtml(item.mpesa_transaction_id || `PAY-${item.id}`)}</td><td>${escapeHtml(item.status || 'pending')}</td><td class="amount">KSh ${Number(item.amount || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td></tr>`).join('');
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Payments Received Report</title><style>${reportStyles}</style></head><body><h1>Payments Received Report</h1><p class="subtitle"><strong>${escapeHtml(user?.name || 'Farmer')}</strong> | ${escapeHtml(user?.phone || 'N/A')}<br>Generated ${escapeHtml(new Date().toLocaleString())}</p><section class="summary"><div><span class="label">Transactions</span><span class="value">${sortedPayments.length}</span></div><div><span class="label">Received</span><span class="value">KSh ${received.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span></div><div><span class="label">Pending</span><span class="value">KSh ${pending.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span></div></section><table><thead><tr><th>Date</th><th>Method</th><th>Reference</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+    openPdfReport('Payments Received Report', htmlContent);
+  };
+
+  const reportStyles = `body { font-family: Arial, sans-serif; color: #262626; padding: 32px; } h1 { color: #1B432E; margin: 0 0 6px; } .subtitle { color: #737373; margin: 0 0 24px; } .summary { display: table; width: 100%; margin: 20px 0 28px; border: 1px solid #C5D9C8; border-radius: 10px; overflow: hidden; } .summary div { display: table-cell; padding: 14px; border-right: 1px solid #EAF0EB; } .summary div:last-child { border-right: 0; } .label { display: block; color: #737373; font-size: 11px; text-transform: uppercase; margin-bottom: 5px; } .value { color: #1B432E; font-size: 17px; font-weight: bold; } table { border-collapse: collapse; width: 100%; } th { background: #1B432E; color: white; text-align: left; padding: 11px; font-size: 12px; } td { border-bottom: 1px solid #EAF0EB; padding: 11px; font-size: 12px; } .amount { text-align: right; font-weight: bold; }`;
 
   // Dynamic calculations (fallback to design figures if empty)
   const totalLiters = collections.reduce((sum, item) => sum + parseFloat(item.liters || 0), 0);
@@ -195,6 +248,16 @@ export default function FarmerHomeScreen() {
       <View style={styles.tabContainer}>
         <View style={styles.tabHeader}>
           <Text style={styles.tabTitle}>Milk Deliveries</Text>
+          <Pressable
+            style={[styles.reportButton, collections.length === 0 && styles.reportButtonDisabled]}
+            onPress={generateDeliveriesPdf}
+            disabled={collections.length === 0}
+            accessibilityRole="button"
+            accessibilityLabel="Generate milk deliveries PDF report"
+          >
+            <Feather name="file-text" size={15} color="#FFFFFF" />
+            <Text style={styles.reportButtonText}>PDF report</Text>
+          </Pressable>
         </View>
         <ScrollView contentContainerStyle={styles.tabScrollContent}>
           {collections.length > 0 ? (
@@ -230,6 +293,16 @@ export default function FarmerHomeScreen() {
       <View style={styles.tabContainer}>
         <View style={styles.tabHeader}>
           <Text style={styles.tabTitle}>Payments History</Text>
+          <Pressable
+            style={[styles.reportButton, payments.length === 0 && styles.reportButtonDisabled]}
+            onPress={generatePaymentsPdf}
+            disabled={payments.length === 0}
+            accessibilityRole="button"
+            accessibilityLabel="Generate payments received PDF report"
+          >
+            <Feather name="file-text" size={15} color="#FFFFFF" />
+            <Text style={styles.reportButtonText}>PDF report</Text>
+          </Pressable>
         </View>
         <ScrollView contentContainerStyle={styles.tabScrollContent}>
           {payments.length > 0 ? (
@@ -597,11 +670,31 @@ const styles = StyleSheet.create({
   tabHeader: {
     paddingHorizontal: 24,
     marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   tabTitle: {
     fontSize: 24,
     fontWeight: '800',
     color: '#1B432E',
+  },
+  reportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#1B432E',
+    borderRadius: 9,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+  },
+  reportButtonDisabled: {
+    backgroundColor: '#A3A3A3',
+  },
+  reportButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   tabScrollContent: {
     paddingHorizontal: 24,
