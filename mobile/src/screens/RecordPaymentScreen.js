@@ -20,6 +20,7 @@ export default function RecordPaymentScreen({ route, navigation }) {
   const [fetching, setFetching] = useState(false);
   const [farmerModalVisible, setFarmerModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [lastPayment, setLastPayment] = useState(null);
 
   const filteredFarmers = farmers.filter(f => {
     const q = searchQuery.toLowerCase();
@@ -143,16 +144,8 @@ export default function RecordPaymentScreen({ route, navigation }) {
       const successMessage = method === 'mpesa'
         ? `STK push sent to ${user?.phone || 'your registered M-Pesa number'}. Approve it to record the payment for ${selectedFarmer.name}.`
         : 'Payment recorded successfully.';
-      Alert.alert('Success', successMessage, [
-        {
-          text: 'Generate PDF',
-          onPress: async () => {
-            await generatePaymentReceiptPdf(response.data.payment);
-            navigation.goBack();
-          },
-        },
-        { text: 'Done', onPress: () => navigation.goBack() },
-      ]);
+      setLastPayment(response.data.payment);
+      Alert.alert('Success', `${successMessage}\n\nUse the Generate Payment PDF button below to create the receipt.`);
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Unable to record payment.');
     } finally {
@@ -276,7 +269,7 @@ export default function RecordPaymentScreen({ route, navigation }) {
         <Pressable 
           style={styles.saveButton} 
           onPress={handleSave}
-          disabled={loading || !selectedFarmer}
+          disabled={loading || !selectedFarmer || Boolean(lastPayment)}
         >
           {loading ? (
             <ActivityIndicator color="#FFFFFF" />
@@ -284,6 +277,22 @@ export default function RecordPaymentScreen({ route, navigation }) {
             <Text style={styles.saveButtonText}>{method === 'mpesa' ? 'Send STK Prompt' : 'Initiate Payment'}</Text>
           )}
         </Pressable>
+
+        {lastPayment && (
+          <View style={styles.receiptCard}>
+            <View style={styles.receiptHeader}>
+              <Feather name="file-text" size={22} color="#107C41" />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.receiptTitle}>Payment receipt ready</Text>
+                <Text style={styles.receiptMeta}>KSh {Number(lastPayment.amount).toLocaleString()} · {lastPayment.status}</Text>
+              </View>
+            </View>
+            <Pressable style={styles.pdfButton} onPress={() => generatePaymentReceiptPdf(lastPayment)}>
+              <Feather name="download" size={18} color="#FFFFFF" />
+              <Text style={styles.pdfButtonText}>Generate Payment PDF</Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
 
       {/* Farmer Selection Modal */}
@@ -517,6 +526,43 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
+  },
+  receiptCard: {
+    marginTop: 20,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#C5D9C8',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+  },
+  receiptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  receiptTitle: {
+    color: '#1B432E',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  receiptMeta: {
+    color: '#737373',
+    fontSize: 13,
+    marginTop: 3,
+  },
+  pdfButton: {
+    alignItems: 'center',
+    backgroundColor: '#107C41',
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 16,
+    paddingVertical: 13,
+  },
+  pdfButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+    marginLeft: 8,
   },
   modalCenteredOverlay: {
     flex: 1,
