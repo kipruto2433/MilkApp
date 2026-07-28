@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, ScrollView, ActivityIndicator, Modal, FlatList } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Alert, ScrollView, ActivityIndicator, Modal, FlatList, Platform } from 'react-native';
 import { AuthContext } from '../auth/AuthContext';
 import { createPayment, fetchFarmers } from '../api';
 import Feather from '@expo/vector-icons/Feather';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 export default function RecordPaymentScreen({ route, navigation }) {
   const { token, user } = useContext(AuthContext);
@@ -52,6 +54,77 @@ export default function RecordPaymentScreen({ route, navigation }) {
     loadFarmers();
   }, [token, routeFarmerId]);
 
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;',
+  }[character]));
+
+  const generatePaymentReceiptPdf = async (payment) => {
+    const paymentAmount = Number(payment.amount || amount).toLocaleString('en-KE', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>MilkTrack Payment Receipt</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: #262626; padding: 36px; }
+            h1 { color: #1B432E; margin: 0 0 6px; }
+            .subtitle { color: #737373; margin: 0 0 30px; }
+            .receipt { border: 1px solid #C5D9C8; border-radius: 12px; overflow: hidden; }
+            .status { background: #E6F7EB; color: #107C41; font-weight: bold; padding: 12px 18px; text-transform: uppercase; }
+            table { border-collapse: collapse; width: 100%; }
+            td { border-top: 1px solid #EAF0EB; padding: 14px 18px; }
+            td:first-child { color: #737373; width: 42%; }
+            .amount { color: #1B432E; font-size: 24px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>MilkTrack Payment Receipt</h1>
+          <p class="subtitle">Generated ${escapeHtml(new Date().toLocaleString())}</p>
+          <section class="receipt">
+            <div class="status">${escapeHtml(payment.status || 'pending')}</div>
+            <table>
+              <tr><td>Receipt No.</td><td>${escapeHtml(payment.mpesa_transaction_id || `PAY-${payment.id}`)}</td></tr>
+              <tr><td>Payment Date</td><td>${escapeHtml(payment.payment_date || paymentDate)}</td></tr>
+              <tr><td>Farmer</td><td>${escapeHtml(selectedFarmer?.name)}</td></tr>
+              <tr><td>Farmer Phone</td><td>${escapeHtml(selectedFarmer?.phone)}</td></tr>
+              <tr><td>Collector</td><td>${escapeHtml(user?.name)}</td></tr>
+              <tr><td>Payment Method</td><td>${escapeHtml(payment.method || method).toUpperCase()}</td></tr>
+              <tr><td>Amount</td><td class="amount">KSh ${paymentAmount}</td></tr>
+              <tr><td>Notes</td><td>${escapeHtml(payment.notes || notes || '—')}</td></tr>
+            </table>
+          </section>
+        </body>
+      </html>`;
+
+    try {
+      if (Platform.OS === 'web') {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) throw new Error('Unable to open the print window.');
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 500);
+      } else {
+        const { uri } = await Print.printToFileAsync({ html: htmlContent });
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+      }
+    } catch (error) {
+      console.warn('Payment receipt PDF failed:', error);
+      Alert.alert('PDF Error', 'Payment was saved, but the receipt PDF could not be generated.');
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedFarmer || !amount || !paymentDate) {
       return Alert.alert('Validation Error', 'Please complete the payment form.');
@@ -59,7 +132,7 @@ export default function RecordPaymentScreen({ route, navigation }) {
 
     setLoading(true);
     try {
-      await createPayment(token, {
+      const response = await createPayment(token, {
         farmer_id: selectedFarmer.id,
         amount: parseFloat(amount),
         payment_date: paymentDate,
@@ -67,10 +140,19 @@ export default function RecordPaymentScreen({ route, navigation }) {
         notes,
       });
 
-      Alert.alert('Success', method === 'mpesa'
+      const successMessage = method === 'mpesa'
         ? `STK push sent to ${user?.phone || 'your registered M-Pesa number'}. Approve it to record the payment for ${selectedFarmer.name}.`
-        : 'Payment recorded successfully.');
-      navigation.goBack();
+        : 'Payment recorded successfully.';
+      Alert.alert('Success', successMessage, [
+        {
+          text: 'Generate PDF',
+          onPress: async () => {
+            await generatePaymentReceiptPdf(response.data.payment);
+            navigation.goBack();
+          },
+        },
+        { text: 'Done', onPress: () => navigation.goBack() },
+      ]);
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Unable to record payment.');
     } finally {
