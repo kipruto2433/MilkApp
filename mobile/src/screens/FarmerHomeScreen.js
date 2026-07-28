@@ -33,17 +33,6 @@ export default function FarmerHomeScreen() {
     loadData();
   }, [token]);
 
-  const handleRequestPayment = () => {
-    if (balanceDueVal <= 0) {
-      Alert.alert('No Balance Due', 'You currently have no outstanding balance to request.');
-      return;
-    }
-    Alert.alert(
-      'Payment Request Sent',
-      `Your request for payment of KSh ${balanceDueVal.toLocaleString()} has been sent to your milk collector.`
-    );
-  };
-
   const getInitials = (name) => {
     if (!name) return 'F';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -235,10 +224,6 @@ export default function FarmerHomeScreen() {
           </View>
         </View>
 
-        {/* Request payment button */}
-        <Pressable style={styles.requestButton} onPress={handleRequestPayment}>
-          <Text style={styles.requestButtonText}>Request payment</Text>
-        </Pressable>
       </ScrollView>
     );
   };
@@ -627,22 +612,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#F5F5F5',
     marginVertical: 14,
-  },
-  requestButton: {
-    backgroundColor: '#E6F7EB',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#C5D9C8',
-    marginHorizontal: 24,
-    marginTop: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  requestButtonText: {
-    color: '#1B432E',
-    fontSize: 14,
-    fontWeight: '800',
   },
   bottomTabBar: {
     height: 64,
