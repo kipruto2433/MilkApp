@@ -174,71 +174,63 @@ function AdminHomeScreen() {
     }
   };
 
+  const confirmUserAction = (title, message, actionLabel, onConfirm, destructive = false) => {
+    if (Platform.OS === 'web') {
+      if (typeof window === 'undefined' || window.confirm(`${title}\n\n${message}`)) {
+        onConfirm();
+      }
+      return;
+    }
+
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: actionLabel, style: destructive ? 'destructive' : 'default', onPress: onConfirm },
+    ]);
+  };
+
   const handleDeleteUser = (item) => {
     const userRole = item.userType || 'user';
     const message = `Are you sure you want to delete the ${userRole} "${item.name}"? This action is permanent and cannot be undone.`;
-
-    Alert.alert(
-      'Confirm Deletion',
-      message,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              if (userRole === 'collector') {
-                await deleteCollector(token, item.id);
-              } else if (userRole === 'farmer') {
-                await deleteFarmer(token, item.id);
-              }
-              Alert.alert('Success', `${item.name} has been deleted.`);
-              loadData();
-            } catch (err) {
-              Alert.alert('Error', err.response?.data?.error || `Failed to delete ${userRole}.`);
-            } finally {
-              setLoading(false);
-            }
-          }
+    confirmUserAction('Confirm Deletion', message, 'Delete', async () => {
+      setLoading(true);
+      try {
+        if (userRole === 'collector') {
+          await deleteCollector(token, item.id);
+        } else if (userRole === 'farmer') {
+          await deleteFarmer(token, item.id);
         }
-      ]
-    );
+        Alert.alert('Success', `${item.name} has been deleted.`);
+        await loadData();
+      } catch (err) {
+        Alert.alert('Error', err.response?.data?.error || `Failed to delete ${userRole}.`);
+      } finally {
+        setLoading(false);
+      }
+    }, true);
   };
 
   const handleToggleUserSuspension = (item) => {
     const userRole = item.userType;
     const nextStatus = item.status === 'suspended' ? 'active' : 'suspended';
     const action = nextStatus === 'suspended' ? 'Suspend' : 'Reactivate';
+    const message = `${action} ${item.name}? ${nextStatus === 'suspended' ? 'They will no longer be able to sign in or use the app.' : 'They will be able to sign in again.'}`;
 
-    Alert.alert(
-      `${action} ${userRole}`,
-      `${action} ${item.name}? ${nextStatus === 'suspended' ? 'They will no longer be able to sign in or use the app.' : 'They will be able to sign in again.'}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: action,
-          style: nextStatus === 'suspended' ? 'destructive' : 'default',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              if (userRole === 'farmer') {
-                await updateFarmerStatus(token, item.id, nextStatus);
-              } else if (userRole === 'collector') {
-                await updateCollectorStatus(token, item.id, nextStatus);
-              }
-              Alert.alert('Success', `${item.name} has been ${nextStatus}.`);
-              await loadData();
-            } catch (error) {
-              Alert.alert('Error', error.response?.data?.error || `Failed to ${nextStatus === 'suspended' ? 'suspend' : 'reactivate'} ${userRole}.`);
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
+    confirmUserAction(`${action} ${userRole}`, message, action, async () => {
+      setLoading(true);
+      try {
+        if (userRole === 'farmer') {
+          await updateFarmerStatus(token, item.id, nextStatus);
+        } else if (userRole === 'collector') {
+          await updateCollectorStatus(token, item.id, nextStatus);
+        }
+        Alert.alert('Success', `${item.name} has been ${nextStatus}.`);
+        await loadData();
+      } catch (error) {
+        Alert.alert('Error', error.response?.data?.error || `Failed to ${nextStatus === 'suspended' ? 'suspend' : 'reactivate'} ${userRole}.`);
+      } finally {
+        setLoading(false);
+      }
+    }, nextStatus === 'suspended');
   };
 
   const handlePasswordChange = async () => {
