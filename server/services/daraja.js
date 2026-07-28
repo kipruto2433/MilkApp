@@ -1,6 +1,6 @@
 const DARAJA_BASE_URL = process.env.DARAJA_BASE_URL || 'https://sandbox.safaricom.co.ke';
 const isSandbox = process.env.DARAJA_ENV === 'sandbox' || DARAJA_BASE_URL.includes('sandbox.safaricom.co.ke');
-const DARAJA_SANDBOX_PHONE = process.env.DARAJA_SANDBOX_PHONE || '254708374149';
+const DARAJA_SANDBOX_PHONE = process.env.DARAJA_SANDBOX_PHONE || '254716884543';
 
 function normalizePhone(phone) {
   const digits = String(phone || '').replace(/\D/g, '');
