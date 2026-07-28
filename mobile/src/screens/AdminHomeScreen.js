@@ -583,7 +583,6 @@ function AdminHomeScreen() {
   });
   const totalMilkToday = todayCollections.reduce((sum, item) => sum + parseFloat(item.liters || 0), 0);
   const totalPaymentsVal = payments.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
-  const totalDisputes = payments.filter((item) => item.status === 'pending').length;
 
   const exportAdminReportPDF = async () => {
     try {
@@ -736,7 +735,6 @@ function AdminHomeScreen() {
   const displayUsers = totalUsersCount;
   const displayMilk = `${totalMilkToday.toFixed(0)} L`;
   const displayPayments = `KSh ${totalPaymentsVal.toLocaleString()}`;
-  const displayDisputes = totalDisputes;
 
   // Render Dashboard Tab
   const renderDashboardTab = () => {
@@ -774,10 +772,6 @@ function AdminHomeScreen() {
               <Text style={styles.metricTitle}>Payments this month</Text>
               <Text style={styles.metricValue}>{displayPayments}</Text>
               <Text style={styles.metricSubtext}>{payments.length} transactions</Text>
-            </View>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricTitle}>Disputes</Text>
-              <Text style={styles.metricValue}>{displayDisputes}</Text>
             </View>
           </View>
         </View>
