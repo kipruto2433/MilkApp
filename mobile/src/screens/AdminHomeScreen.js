@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Modal, TextInput, ActivityIndicator, Platform, Switch } from 'react-native';
-import { fetchFarmers, fetchCollections, fetchPayments, fetchCollectors, createCollector, deleteCollector, deleteFarmer, changePassword, getSettings, updateSettings, getLogs, fetchReports } from '../api';
+import { fetchFarmers, fetchCollections, fetchPayments, fetchCollectors, createCollector, deleteCollector, deleteFarmer, updateFarmerStatus, updateCollectorStatus, changePassword, getSettings, updateSettings, getLogs, fetchReports } from '../api';
 import { AuthContext } from '../auth/AuthContext';
 import Feather from '@expo/vector-icons/Feather';
 import * as Print from 'expo-print';
@@ -203,6 +203,40 @@ function AdminHomeScreen() {
             }
           }
         }
+      ]
+    );
+  };
+
+  const handleToggleUserSuspension = (item) => {
+    const userRole = item.userType;
+    const nextStatus = item.status === 'suspended' ? 'active' : 'suspended';
+    const action = nextStatus === 'suspended' ? 'Suspend' : 'Reactivate';
+
+    Alert.alert(
+      `${action} ${userRole}`,
+      `${action} ${item.name}? ${nextStatus === 'suspended' ? 'They will no longer be able to sign in or use the app.' : 'They will be able to sign in again.'}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: action,
+          style: nextStatus === 'suspended' ? 'destructive' : 'default',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              if (userRole === 'farmer') {
+                await updateFarmerStatus(token, item.id, nextStatus);
+              } else if (userRole === 'collector') {
+                await updateCollectorStatus(token, item.id, nextStatus);
+              }
+              Alert.alert('Success', `${item.name} has been ${nextStatus}.`);
+              await loadData();
+            } catch (error) {
+              Alert.alert('Error', error.response?.data?.error || `Failed to ${nextStatus === 'suspended' ? 'suspend' : 'reactivate'} ${userRole}.`);
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
       ]
     );
   };
@@ -884,7 +918,7 @@ function AdminHomeScreen() {
         <ScrollView contentContainerStyle={styles.tabScrollContent}>
           {allUsers.length > 0 ? (
             allUsers.map((item, idx) => {
-              const isActive = item.status === 'active' || item.userType === 'admin';
+              const isActive = item.status !== 'suspended' || item.userType === 'admin';
               
               const isFarmer = item.userType === 'farmer';
               let deliveredStr = '0 L';
@@ -941,13 +975,28 @@ function AdminHomeScreen() {
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <View style={[styles.statusBadge, isActive ? styles.statusBadgePaid : styles.statusBadgePending, { marginRight: 8 }]}>
                         <Text style={[styles.statusBadgeText, isActive ? styles.statusBadgeTextPaid : styles.statusBadgeTextPending]}>
-                          {isActive ? 'Active' : 'Inactive'}
+                          {isActive ? 'Active' : 'Suspended'}
                         </Text>
                       </View>
                       {item.userType !== 'admin' && (
-                        <Pressable onPress={() => handleDeleteUser(item)} style={{ padding: 4 }}>
-                          <Feather name="trash-2" size={18} color="#EF4444" />
-                        </Pressable>
+                        <>
+                          <Pressable
+                            onPress={() => handleToggleUserSuspension(item)}
+                            style={styles.userActionButton}
+                            accessibilityRole="button"
+                            accessibilityLabel={`${isActive ? 'Suspend' : 'Reactivate'} ${item.name}`}
+                          >
+                            <Feather name={isActive ? 'user-x' : 'user-check'} size={18} color={isActive ? '#A16207' : '#107C41'} />
+                          </Pressable>
+                          <Pressable
+                            onPress={() => handleDeleteUser(item)}
+                            style={styles.userActionButton}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Delete ${item.name}`}
+                          >
+                            <Feather name="trash-2" size={18} color="#EF4444" />
+                          </Pressable>
+                        </>
                       )}
                     </View>
                   </View>
@@ -2049,6 +2098,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#737373',
     marginTop: 4,
+  },
+  userActionButton: {
+    padding: 5,
+    marginLeft: 2,
   },
   statusBadge: {
     borderRadius: 8,

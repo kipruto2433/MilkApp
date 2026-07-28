@@ -111,6 +111,34 @@ router.put('/:id', authenticate, authorize(['collector', 'admin']), async (req, 
   }
 });
 
+router.patch('/:id/status', authenticate, authorize(['admin']), async (req, res) => {
+  const farmerId = parseInt(req.params.id, 10);
+  const { status } = req.body;
+  if (Number.isNaN(farmerId) || !['active', 'suspended'].includes(status)) {
+    return res.status(400).json({ error: 'A valid farmer ID and status are required' });
+  }
+
+  try {
+    await db.query('BEGIN');
+    const result = await db.query(
+      `UPDATE farmers SET status = $1 WHERE id = $2 RETURNING user_id, farmer_code`,
+      [status, farmerId]
+    );
+    if (result.rows.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ error: 'Farmer not found' });
+    }
+    await db.query('UPDATE users SET status = $1 WHERE id = $2', [status, result.rows[0].user_id]);
+    await db.query('INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)', [req.user.id, 'UPDATE_FARMER_STATUS', `${status} farmer ${result.rows[0].farmer_code}`]);
+    await db.query('COMMIT');
+    res.json({ farmer: { id: farmerId, status } });
+  } catch (err) {
+    await db.query('ROLLBACK').catch(() => {});
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update farmer status' });
+  }
+});
+
 router.delete('/:id', authenticate, authorize(['collector', 'admin']), async (req, res) => {
   const farmerId = parseInt(req.params.id, 10);
   if (Number.isNaN(farmerId)) {

@@ -49,7 +49,7 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const query = `SELECT id, name, phone, password_hash, role FROM users WHERE phone = $1 LIMIT 1`;
+    const query = `SELECT id, name, phone, password_hash, role, status FROM users WHERE phone = $1 LIMIT 1`;
     const result = await db.query(query, [phone]);
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -59,6 +59,9 @@ router.post('/login', async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    if (user.status === 'suspended') {
+      return res.status(403).json({ error: 'This account has been suspended. Please contact an administrator.' });
     }
 
     const token = jwt.sign(

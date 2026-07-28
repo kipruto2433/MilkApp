@@ -44,6 +44,20 @@ app.get('/', (req, res) => {
   res.json({ message: 'MilkApp backend is running.' });
 });
 
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
-});
+async function startServer() {
+  try {
+    await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT 'active'");
+    await db.query("UPDATE users SET status = 'active' WHERE status IS NULL");
+    await db.query('ALTER TABLE farmers ALTER COLUMN collector_id DROP NOT NULL');
+    await db.query('ALTER TABLE milk_collections ALTER COLUMN collector_id DROP NOT NULL');
+    await db.query('ALTER TABLE payments ALTER COLUMN collector_id DROP NOT NULL');
+  } catch (error) {
+    console.error('Database compatibility migration failed:', error.message);
+  }
+
+  app.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+  });
+}
+
+startServer();

@@ -66,6 +66,12 @@ export const deleteCollector = (token, id) =>
 export const deleteFarmer = (token, id) =>
   api.delete(`/farmers/${id}`, authHeader(token));
 
+export const updateFarmerStatus = (token, id, status) =>
+  api.patch(`/farmers/${id}/status`, { status }, authHeader(token));
+
+export const updateCollectorStatus = (token, id, status) =>
+  api.patch(`/collectors/${id}/status`, { status }, authHeader(token));
+
 export const changePassword = (token, oldPassword, newPassword) =>
   api.put('/auth/change-password', { oldPassword, newPassword }, authHeader(token));
 

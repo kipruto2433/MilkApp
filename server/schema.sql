@@ -10,13 +10,14 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(256),
   password_hash TEXT NOT NULL,
   role VARCHAR(32) NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'active',
   created_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS farmers (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  collector_id INTEGER NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+  collector_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   farmer_code VARCHAR(64) UNIQUE NOT NULL,
   village VARCHAR(128),
   status VARCHAR(32) DEFAULT 'active',
@@ -26,7 +27,7 @@ CREATE TABLE IF NOT EXISTS farmers (
 CREATE TABLE IF NOT EXISTS milk_collections (
   id SERIAL PRIMARY KEY,
   farmer_id INTEGER NOT NULL REFERENCES farmers(id) ON DELETE CASCADE,
-  collector_id INTEGER NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+  collector_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   collected_at DATE NOT NULL,
   liters NUMERIC(10,2) NOT NULL,
   total_amount NUMERIC(12,2) NOT NULL,
@@ -36,7 +37,7 @@ CREATE TABLE IF NOT EXISTS milk_collections (
 CREATE TABLE IF NOT EXISTS payments (
   id SERIAL PRIMARY KEY,
   farmer_id INTEGER NOT NULL REFERENCES farmers(id) ON DELETE CASCADE,
-  collector_id INTEGER NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+  collector_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   amount NUMERIC(12,2) NOT NULL,
   payment_date DATE NOT NULL,
   status VARCHAR(32) DEFAULT 'pending',
