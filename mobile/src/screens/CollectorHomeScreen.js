@@ -496,7 +496,6 @@ export default function CollectorHomeScreen({ navigation }) {
               <Text style={styles.metricValue}>
                 {totalMilkToday > 0 ? `${totalMilkToday.toFixed(0)} L` : '0 L'}
               </Text>
-              {totalMilkToday > 0 && <Text style={styles.metricSubtext}>Dynamic</Text>}
             </View>
             <View style={styles.metricCard}>
               <Text style={styles.metricTitle}>Farmers today</Text>
@@ -513,7 +512,6 @@ export default function CollectorHomeScreen({ navigation }) {
               <Text style={styles.metricValue}>
                 {totalMilkMonth > 0 ? `${totalMilkMonth.toLocaleString()} L` : '0 L'}
               </Text>
-              {totalMilkMonth > 0 && <Text style={styles.metricSubtext}>Dynamic</Text>}
             </View>
             <View style={styles.metricCard}>
               <Text style={styles.metricTitle}>Payments due</Text>
@@ -553,11 +551,6 @@ export default function CollectorHomeScreen({ navigation }) {
           ) : farmers.length > 0 ? (
             farmers.map(farmer => {
               const todayColl = getFarmerCollectionToday(farmer.id);
-              const farmerCollections = collections.filter(c => c.farmer_id === farmer.id);
-              const farmerPayments = payments.filter(p => p.farmer_id === farmer.id && (p.status === 'paid' || p.status === 'completed'));
-              const fEarned = farmerCollections.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0);
-              const fPaid = farmerPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-              const isTodayPaid = todayColl && (fEarned - fPaid <= 0);
               const initials = getInitials(farmer.name);
               
               return (
@@ -581,17 +574,6 @@ export default function CollectorHomeScreen({ navigation }) {
                     <Text style={styles.farmerLitersText}>
                       {todayColl ? `${parseFloat(todayColl.liters).toFixed(0)} L` : '0 L'}
                     </Text>
-                    <View style={[
-                      styles.statusBadge,
-                      isTodayPaid ? styles.statusBadgePaid : styles.statusBadgePending
-                    ]}>
-                      <Text style={[
-                        styles.statusBadgeText,
-                        isTodayPaid ? styles.statusBadgeTextPaid : styles.statusBadgeTextPending
-                      ]}>
-                        {isTodayPaid ? 'Paid' : 'Pending'}
-                      </Text>
-                    </View>
                   </View>
                 </Pressable>
               );
