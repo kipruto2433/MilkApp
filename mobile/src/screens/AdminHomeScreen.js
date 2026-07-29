@@ -60,6 +60,7 @@ function AdminHomeScreen() {
   const [userRoleFilter, setUserRoleFilter] = useState('all'); // 'all' | 'farmer' | 'collector' | 'admin'
   const [searchQuery, setSearchQuery] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [paymentsModalUser, setPaymentsModalUser] = useState(null);
   
   // Create Collector Form
   const [newName, setNewName] = useState('');
@@ -1002,6 +1003,17 @@ function AdminHomeScreen() {
                       <Text style={styles.userCardDetailVal}>{balanceStr}</Text>
                     </View>
                   </View>
+                  {item.userType !== 'admin' && (
+                    <Pressable
+                      style={styles.viewPaymentsButton}
+                      onPress={() => setPaymentsModalUser(item)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`View payments for ${item.name}`}
+                    >
+                      <Feather name="credit-card" size={15} color="#1B432E" />
+                      <Text style={styles.viewPaymentsButtonText}>View payments</Text>
+                    </Pressable>
+                  )}
                 </View>
               );
             })
@@ -1266,6 +1278,62 @@ function AdminHomeScreen() {
           </Text>
         </Pressable>
       </View>
+
+      {/* User Payments Modal */}
+      <Modal
+        visible={Boolean(paymentsModalUser)}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setPaymentsModalUser(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, styles.paymentsModalContent]}>
+            <Text style={styles.modalTitle}>Payments made</Text>
+            <Text style={styles.paymentsModalSubtitle}>
+              {paymentsModalUser?.userType === 'collector'
+                ? `Payments recorded by ${paymentsModalUser?.name || 'this collector'}`
+                : `Payments made to ${paymentsModalUser?.name || 'this farmer'}`}
+            </Text>
+            <ScrollView style={styles.paymentsModalList} showsVerticalScrollIndicator={false}>
+              {paymentsModalUser && payments
+                .filter(payment => paymentsModalUser.userType === 'collector'
+                  ? payment.collector_id === paymentsModalUser.id
+                  : payment.farmer_id === paymentsModalUser.id)
+                .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))
+                .map(payment => {
+                  const relatedUser = paymentsModalUser.userType === 'collector'
+                    ? farmers.find(farmer => farmer.id === payment.farmer_id)?.name || payment.farmer_code || 'Farmer'
+                    : collectors.find(collector => collector.id === payment.collector_id)?.name || payment.collector_name || 'Collector';
+                  return (
+                    <View key={payment.id} style={styles.paymentRecordCard}>
+                      <View style={styles.paymentRecordHeader}>
+                        <Text style={styles.paymentRecordAmount}>KSh {parseFloat(payment.amount || 0).toLocaleString()}</Text>
+                        <Text style={styles.paymentRecordDate}>
+                          {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : 'Date unavailable'}
+                        </Text>
+                      </View>
+                      <Text style={styles.paymentRecordDetail}>Method: {(payment.method || 'N/A').toUpperCase()}</Text>
+                      <Text style={styles.paymentRecordDetail}>
+                        {paymentsModalUser.userType === 'collector' ? `Farmer: ${relatedUser}` : `Recorded by: ${relatedUser}`}
+                      </Text>
+                    </View>
+                  );
+                })}
+              {paymentsModalUser && payments.filter(payment => paymentsModalUser.userType === 'collector'
+                ? payment.collector_id === paymentsModalUser.id
+                : payment.farmer_id === paymentsModalUser.id).length === 0 && (
+                <View style={styles.emptyPaymentState}>
+                  <Feather name="credit-card" size={22} color="#A3A3A3" />
+                  <Text style={styles.emptyPaymentStateText}>No payments recorded yet.</Text>
+                </View>
+              )}
+            </ScrollView>
+            <Pressable style={[styles.modalBtn, styles.cancelBtn, { marginTop: 16 }]} onPress={() => setPaymentsModalUser(null)}>
+              <Text style={styles.cancelText}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* Add Collector Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
@@ -2130,6 +2198,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1B432E',
   },
+  viewPaymentsButton: {
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EAF0EB',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 14,
+  },
+  viewPaymentsButtonText: {
+    color: '#1B432E',
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 6,
+  },
   chartCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
@@ -2325,6 +2409,56 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     textAlign: 'center',
     color: '#1B432E',
+  },
+  paymentsModalContent: {
+    maxHeight: '80%',
+  },
+  paymentsModalSubtitle: {
+    color: '#737373',
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: -10,
+    marginBottom: 14,
+  },
+  paymentsModalList: {
+    width: '100%',
+  },
+  paymentRecordCard: {
+    backgroundColor: '#F7FAF7',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#EAF0EB',
+    padding: 14,
+    marginBottom: 10,
+  },
+  paymentRecordHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  paymentRecordAmount: {
+    color: '#1B432E',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  paymentRecordDate: {
+    color: '#737373',
+    fontSize: 12,
+  },
+  paymentRecordDetail: {
+    color: '#4B5563',
+    fontSize: 12,
+    marginTop: 3,
+  },
+  emptyPaymentState: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  emptyPaymentStateText: {
+    color: '#737373',
+    fontSize: 13,
+    marginTop: 10,
   },
   modalInput: {
     backgroundColor: '#FFFFFF',
