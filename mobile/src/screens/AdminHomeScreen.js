@@ -61,6 +61,7 @@ function AdminHomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [paymentsModalUser, setPaymentsModalUser] = useState(null);
+  const [generatingPaymentsReport, setGeneratingPaymentsReport] = useState(false);
   
   // Create Collector Form
   const [newName, setNewName] = useState('');
@@ -416,6 +417,63 @@ function AdminHomeScreen() {
       Alert.alert('Error', 'Failed to prepare system backup export.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const getPaymentsForUser = (selectedUser) => {
+    if (!selectedUser) return [];
+    return payments
+      .filter(payment => selectedUser.userType === 'collector'
+        ? payment.collector_id === selectedUser.id
+        : payment.farmer_id === selectedUser.id)
+      .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date));
+  };
+
+  const handleGenerateUserPaymentsPdf = async () => {
+    if (!paymentsModalUser) return;
+
+    const userPayments = getPaymentsForUser(paymentsModalUser);
+    if (userPayments.length === 0) {
+      Alert.alert('No payments', 'There are no payments to include in this report.');
+      return;
+    }
+
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, character => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[character]));
+    const isCollector = paymentsModalUser.userType === 'collector';
+    const reportTitle = isCollector ? 'Collector Payments Report' : 'Farmer Payments Report';
+    const relationshipLabel = isCollector ? 'Farmer' : 'Recorded by';
+    const totalAmount = userPayments.reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0);
+    const rows = userPayments.map(payment => {
+      const relatedUser = isCollector
+        ? farmers.find(farmer => farmer.id === payment.farmer_id)?.name || payment.farmer_code || 'Farmer'
+        : collectors.find(collector => collector.id === payment.collector_id)?.name || payment.collector_name || 'Collector';
+      return `<tr><td>${escapeHtml(payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : 'N/A')}</td><td>${escapeHtml(relatedUser)}</td><td>${escapeHtml((payment.method || 'N/A').toUpperCase())}</td><td>${escapeHtml(payment.mpesa_transaction_id || '-')}</td><td class="amount">KSh ${parseFloat(payment.amount || 0).toLocaleString()}</td></tr>`;
+    }).join('');
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${reportTitle}</title><style>body{font-family:Arial,sans-serif;padding:32px;color:#262626}h1{color:#1B432E;margin:0 0 6px}.subtitle{color:#737373;margin:0 0 24px}.summary{background:#E6F7EB;border:1px solid #C5D9C8;border-radius:10px;padding:14px;margin-bottom:22px;color:#1B432E}table{width:100%;border-collapse:collapse}th,td{border:1px solid #EAF0EB;padding:10px;text-align:left;font-size:12px}th{background:#1B432E;color:#fff}.amount{text-align:right;font-weight:bold}@media print{@page{margin:0}body{padding:20mm;margin:0}}</style></head><body><h1>${reportTitle}</h1><p class="subtitle">${escapeHtml(isCollector ? `Payments recorded by ${paymentsModalUser.name}` : `Payments made to ${paymentsModalUser.name}`)}<br>Generated ${escapeHtml(new Date().toLocaleString())}</p><div class="summary"><strong>Total records:</strong> ${userPayments.length}<br><strong>Total amount:</strong> KSh ${totalAmount.toLocaleString()}</div><table><thead><tr><th>Date</th><th>${relationshipLabel}</th><th>Method</th><th>Reference</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+
+    setGeneratingPaymentsReport(true);
+    try {
+      if (Platform.OS === 'web') {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) throw new Error('Unable to open the print dialog.');
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 500);
+      } else {
+        const { uri } = await Print.printToFileAsync({ html: htmlContent });
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+      }
+    } catch (error) {
+      console.warn(error);
+      Alert.alert('Error', 'Failed to generate the payments report.');
+    } finally {
+      setGeneratingPaymentsReport(false);
     }
   };
 
@@ -1295,11 +1353,7 @@ function AdminHomeScreen() {
                 : `Payments made to ${paymentsModalUser?.name || 'this farmer'}`}
             </Text>
             <ScrollView style={styles.paymentsModalList} showsVerticalScrollIndicator={false}>
-              {paymentsModalUser && payments
-                .filter(payment => paymentsModalUser.userType === 'collector'
-                  ? payment.collector_id === paymentsModalUser.id
-                  : payment.farmer_id === paymentsModalUser.id)
-                .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))
+              {paymentsModalUser && getPaymentsForUser(paymentsModalUser)
                 .map(payment => {
                   const relatedUser = paymentsModalUser.userType === 'collector'
                     ? farmers.find(farmer => farmer.id === payment.farmer_id)?.name || payment.farmer_code || 'Farmer'
@@ -1319,18 +1373,25 @@ function AdminHomeScreen() {
                     </View>
                   );
                 })}
-              {paymentsModalUser && payments.filter(payment => paymentsModalUser.userType === 'collector'
-                ? payment.collector_id === paymentsModalUser.id
-                : payment.farmer_id === paymentsModalUser.id).length === 0 && (
+              {paymentsModalUser && getPaymentsForUser(paymentsModalUser).length === 0 && (
                 <View style={styles.emptyPaymentState}>
                   <Feather name="credit-card" size={22} color="#A3A3A3" />
                   <Text style={styles.emptyPaymentStateText}>No payments recorded yet.</Text>
                 </View>
               )}
             </ScrollView>
-            <Pressable style={[styles.modalBtn, styles.cancelBtn, { marginTop: 16 }]} onPress={() => setPaymentsModalUser(null)}>
-              <Text style={styles.cancelText}>Close</Text>
-            </Pressable>
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[styles.modalBtn, styles.saveBtn, (generatingPaymentsReport || getPaymentsForUser(paymentsModalUser).length === 0) && { opacity: 0.55 }]}
+                onPress={handleGenerateUserPaymentsPdf}
+                disabled={generatingPaymentsReport || getPaymentsForUser(paymentsModalUser).length === 0}
+              >
+                {generatingPaymentsReport ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.saveText}>PDF report</Text>}
+              </Pressable>
+              <Pressable style={[styles.modalBtn, styles.cancelBtn, { marginLeft: 8, marginRight: 0 }]} onPress={() => setPaymentsModalUser(null)}>
+                <Text style={styles.cancelText}>Close</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
