@@ -104,7 +104,6 @@ export default function FarmerHomeScreen() {
 
   // Render Home Dashboard Tab
   const renderHomeTab = () => {
-    const sortedCollections = [...collections].sort((a, b) => new Date(a.collected_at) - new Date(b.collected_at) || a.id - b.id);
     return (
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
         {/* Figma Header */}
@@ -142,12 +141,6 @@ export default function FarmerHomeScreen() {
               const collDate = new Date(item.collected_at);
               const dateStr = collDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
               
-              // FIFO calculation for payment status
-              const itemIndex = sortedCollections.findIndex(c => c.id === item.id);
-              const collectionsUpToItem = itemIndex >= 0 ? sortedCollections.slice(0, itemIndex + 1) : [item];
-              const cumulativeEarnedUpToItem = collectionsUpToItem.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0);
-              const isPaid = item.status === 'completed' || totalPaidVal >= cumulativeEarnedUpToItem;
-
               return (
                 <View style={styles.deliveryCard} key={item.id || idx}>
                   <View style={styles.deliveryCardLeft}>
@@ -163,11 +156,6 @@ export default function FarmerHomeScreen() {
                   </View>
                   <View style={styles.deliveryCardRight}>
                     <Text style={styles.deliveryLiters}>{item.liters} L</Text>
-                    <View style={[styles.statusBadge, isPaid ? styles.statusBadgePaid : styles.statusBadgePending]}>
-                      <Text style={[styles.statusBadgeText, isPaid ? styles.statusBadgeTextPaid : styles.statusBadgeTextPending]}>
-                        {isPaid ? 'Paid' : 'Pending'}
-                      </Text>
-                    </View>
                   </View>
                 </View>
               );
@@ -191,11 +179,6 @@ export default function FarmerHomeScreen() {
               </View>
               <View style={styles.paymentSummaryRight}>
                 <Text style={styles.paymentSummaryAmount}>KSh {parseFloat(mostRecentPayment.amount).toLocaleString()}</Text>
-                <View style={[styles.statusBadge, mostRecentPayment.status === 'paid' ? styles.statusBadgePaid : styles.statusBadgePending, { alignSelf: 'flex-end', marginTop: 4 }]}>
-                  <Text style={[styles.statusBadgeText, mostRecentPayment.status === 'paid' ? styles.statusBadgeTextPaid : styles.statusBadgeTextPending]}>
-                    {mostRecentPayment.status === 'paid' ? 'Received' : 'Pending'}
-                  </Text>
-                </View>
               </View>
             </View>
           ) : (
@@ -217,9 +200,6 @@ export default function FarmerHomeScreen() {
             </View>
             <View style={styles.paymentSummaryRight}>
               <Text style={styles.paymentSummaryAmount}>{displayBalance}</Text>
-              <View style={[styles.statusBadge, styles.statusBadgePending, { alignSelf: 'flex-end', marginTop: 4 }]}>
-                <Text style={[styles.statusBadgeText, styles.statusBadgeTextPending]}>Pending</Text>
-              </View>
             </View>
           </View>
         </View>
@@ -304,11 +284,6 @@ export default function FarmerHomeScreen() {
                 </View>
                 <View style={styles.deliveryCardRight}>
                   <Text style={styles.deliveryLiters}>KSh {parseFloat(item.amount).toLocaleString()}</Text>
-                  <View style={[styles.statusBadge, item.status === 'paid' || item.status === 'completed' ? styles.statusBadgePaid : styles.statusBadgePending]}>
-                    <Text style={[styles.statusBadgeText, item.status === 'paid' || item.status === 'completed' ? styles.statusBadgeTextPaid : styles.statusBadgeTextPending]}>
-                      {item.status === 'paid' || item.status === 'completed' ? 'Received' : 'Pending'}
-                    </Text>
-                  </View>
                 </View>
               </View>
             ))
