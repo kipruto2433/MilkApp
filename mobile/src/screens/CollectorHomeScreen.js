@@ -748,17 +748,6 @@ export default function CollectorHomeScreen({ navigation }) {
                     </View>
                     <View style={styles.paymentRight}>
                       <Text style={styles.paymentAmountVal}>KSh {parseFloat(payment.amount).toLocaleString()}</Text>
-                      <View style={[
-                        styles.statusBadge,
-                        payment.status === 'paid' || payment.status === 'completed' ? styles.statusBadgePaid : styles.statusBadgePending
-                      ]}>
-                        <Text style={[
-                          styles.statusBadgeText,
-                          payment.status === 'paid' || payment.status === 'completed' ? styles.statusBadgeTextPaid : styles.statusBadgeTextPending
-                        ]}>
-                          {payment.status === 'paid' || payment.status === 'completed' ? 'Received' : 'Pending'}
-                        </Text>
-                      </View>
                     </View>
                   </View>
                   <Pressable
