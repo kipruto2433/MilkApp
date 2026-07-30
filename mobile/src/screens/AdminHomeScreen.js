@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Modal, TextInput, ActivityIndicator, Platform, Switch } from 'react-native';
 import { fetchFarmers, fetchCollections, fetchPayments, fetchCollectors, createCollector, deleteCollector, deleteFarmer, updateFarmerStatus, updateCollectorStatus, changePassword, getSettings, updateSettings, getLogs, fetchReports } from '../api';
 import { AuthContext } from '../auth/AuthContext';
+import ProfileEditModal from '../components/ProfileEditModal';
 import Feather from '@expo/vector-icons/Feather';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -38,7 +39,7 @@ export default function AdminHomeScreenWrapper() {
 }
 
 function AdminHomeScreen() {
-  const { token, signOut, user } = useContext(AuthContext);
+  const { token, signOut, user, updateProfile } = useContext(AuthContext);
   const [farmers, setFarmers] = useState([]);
   const [collections, setCollections] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -89,6 +90,7 @@ function AdminHomeScreen() {
   const [reportScheduleModalVisible, setReportScheduleModalVisible] = useState(false);
   const [auditLogsModalVisible, setAuditLogsModalVisible] = useState(false);
   const [createAdminModalVisible, setCreateAdminModalVisible] = useState(false);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
   
   const [oldPassword, setOldPassword] = useState('');
   const [adminNewPassword, setAdminNewPassword] = useState('');
@@ -1197,6 +1199,21 @@ function AdminHomeScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.tabScrollContent}>
+          <View style={styles.settingsGroup}>
+            <Text style={styles.settingsGroupTitle}>MY ACCOUNT</Text>
+            <Pressable style={styles.settingsRowItem} onPress={() => setProfileModalVisible(true)}>
+              <View style={styles.settingLeftCol}>
+                <View style={[styles.settingIconBox, { backgroundColor: '#E8F5E9' }]}>
+                  <Feather name="user" size={18} color="#1B432E" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingItemLabel}>Edit profile</Text>
+                  <Text style={styles.settingItemDesc}>{user?.name || 'Admin'} · {user?.phone || 'Phone unavailable'}</Text>
+                </View>
+              </View>
+              <Feather name="chevron-right" size={16} color="#737373" />
+            </Pressable>
+          </View>
           
           {/* USER ACCESS & SECURITY section */}
           <View style={styles.settingsGroup}>
@@ -1299,6 +1316,7 @@ function AdminHomeScreen() {
 
   return (
     <View style={styles.mainContainer}>
+      <ProfileEditModal visible={profileModalVisible} user={user} onClose={() => setProfileModalVisible(false)} onSave={updateProfile} />
       <View style={styles.contentBody}>
         {currentTab === 'dashboard' && renderDashboardTab()}
         {currentTab === 'users' && renderUsersTab()}

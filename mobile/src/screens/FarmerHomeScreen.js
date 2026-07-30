@@ -2,16 +2,18 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Pressable, ActivityIndicator, Platform } from 'react-native';
 import { fetchCollections, fetchPayments } from '../api';
 import { AuthContext } from '../auth/AuthContext';
+import ProfileEditModal from '../components/ProfileEditModal';
 import Feather from '@expo/vector-icons/Feather';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
 export default function FarmerHomeScreen() {
-  const { token, user, signOut } = useContext(AuthContext);
+  const { token, user, signOut, updateProfile } = useContext(AuthContext);
   const [collections, setCollections] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentTab, setCurrentTab] = useState('home'); // 'home' | 'milk' | 'payments' | 'profile'
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -311,6 +313,9 @@ export default function FarmerHomeScreen() {
             <Text style={styles.profileName}>{user?.name || 'Farmer'}</Text>
             <Text style={styles.profileRole}>Farmer Member</Text>
             <Text style={styles.profileRole}>Phone: {user?.phone || 'N/A'}</Text>
+            <Pressable onPress={() => setProfileModalVisible(true)} style={{ marginTop: 16, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10, backgroundColor: '#EAF0EB' }}>
+              <Text style={{ color: '#1B432E', fontWeight: '800' }}>Edit profile</Text>
+            </Pressable>
           </View>
 
           <View style={styles.settingsBox}>
@@ -340,6 +345,7 @@ export default function FarmerHomeScreen() {
 
   return (
     <View style={styles.mainContainer}>
+      <ProfileEditModal visible={profileModalVisible} user={user} onClose={() => setProfileModalVisible(false)} onSave={updateProfile} />
       <View style={styles.contentBody}>
         {currentTab === 'home' && renderHomeTab()}
         {currentTab === 'milk' && renderMilkTab()}

@@ -3,13 +3,14 @@ import { View, Text, Pressable, StyleSheet, ScrollView, Alert, ActivityIndicator
 import { useFocusEffect } from '@react-navigation/native';
 import { fetchFarmers, fetchCollections, fetchPayments, createCollection, fetchReports, changePassword } from '../api';
 import { AuthContext } from '../auth/AuthContext';
+import ProfileEditModal from '../components/ProfileEditModal';
 import Feather from '@expo/vector-icons/Feather';
 import { saveCachedFarmers, getCachedFarmers, getPendingCollections, clearPendingCollections, saveCollectorPrice, getCollectorPrice, saveCollectorPaymentSchedule, getCollectorPaymentSchedule } from '../utils/storage';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
 export default function CollectorHomeScreen({ navigation }) {
-  const { token, signOut, user } = useContext(AuthContext);
+  const { token, signOut, user, updateProfile } = useContext(AuthContext);
   const [farmers, setFarmers] = useState([]);
   const [collections, setCollections] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -43,6 +44,7 @@ export default function CollectorHomeScreen({ navigation }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
 
   const [collectorPaymentSchedule, setCollectorPaymentScheduleState] = useState(30);
   const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
@@ -770,6 +772,9 @@ export default function CollectorHomeScreen({ navigation }) {
             <Text style={styles.profileSettingsName}>{user?.name || 'Collector'}</Text>
             <Text style={styles.profileSettingsRole}>Collector Account</Text>
             <Text style={styles.profileSettingsRole}>{user?.phone}</Text>
+            <Pressable onPress={() => setProfileModalVisible(true)} style={{ marginTop: 16, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10, backgroundColor: '#EAF0EB' }}>
+              <Text style={{ color: '#1B432E', fontWeight: '800' }}>Edit profile</Text>
+            </Pressable>
           </View>
 
           {/* GENERAL settings section */}
@@ -823,6 +828,7 @@ export default function CollectorHomeScreen({ navigation }) {
 
   return (
     <View style={styles.mainContainer}>
+      <ProfileEditModal visible={profileModalVisible} user={user} onClose={() => setProfileModalVisible(false)} onSave={updateProfile} />
       {/* Tab Screen Content */}
       <View style={styles.contentBody}>
         {currentTab === 'dashboard' && renderDashboardTab()}

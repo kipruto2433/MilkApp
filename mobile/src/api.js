@@ -75,6 +75,9 @@ export const updateCollectorStatus = (token, id, status) =>
 export const changePassword = (token, oldPassword, newPassword) =>
   api.put('/auth/change-password', { oldPassword, newPassword }, authHeader(token));
 
+export const updateProfile = (token, profile) =>
+  api.put('/auth/profile', profile, authHeader(token));
+
 export const getSettings = (token) =>
   api.get('/settings', authHeader(token));
 

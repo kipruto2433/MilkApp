@@ -55,8 +55,17 @@ export const AuthProvider = ({ children }) => {
     await clearAuth();
   };
 
+  const updateProfile = async (profile) => {
+    if (!token) throw new Error('You need to sign in again.');
+    const res = await api.put('/auth/profile', profile);
+    const updatedUser = res.data;
+    setUser(updatedUser);
+    await saveAuth(token, updatedUser);
+    return updatedUser;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, token, loading, signIn, signUp, signOut, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

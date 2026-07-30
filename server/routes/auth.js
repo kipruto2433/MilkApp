@@ -125,6 +125,62 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
+// Update the signed-in user's own profile. Role is intentionally not accepted
+// here, so farmers, collectors, and admins can only change their name/phone.
+router.put('/profile', authenticate, async (req, res) => {
+  const name = String(req.body.name || '').trim();
+  const phone = String(req.body.phone || '').trim();
+
+  if (!name || !phone) {
+    return res.status(400).json({ error: 'Name and phone number are required' });
+  }
+  if (name.length > 120) {
+    return res.status(400).json({ error: 'Name must be 120 characters or fewer' });
+  }
+  if (!/^[+0-9][0-9\s-]{6,31}$/.test(phone)) {
+    return res.status(400).json({ error: 'Enter a valid phone number' });
+  }
+
+  try {
+    const result = await db.query(
+      `UPDATE users SET name = $1, phone = $2 WHERE id = $3
+       RETURNING id, name, phone, role, created_at`,
+      [name, phone, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Keep an audit trail without preventing a successful profile update if
+    // logging is temporarily unavailable.
+    await db.query(
+      'INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)',
+      [req.user.id, 'UPDATE_PROFILE', 'User updated their name or phone number']
+    ).catch((logError) => console.error('Profile update log failed:', logError));
+
+    const userPayload = result.rows[0];
+    if (userPayload.role === 'farmer') {
+      const farmerResult = await db.query(
+        `SELECT f.farmer_code, f.village, c.name AS collector_name
+         FROM farmers f
+         LEFT JOIN users c ON f.collector_id = c.id
+         WHERE f.user_id = $1 LIMIT 1`,
+        [req.user.id]
+      );
+      if (farmerResult.rows.length > 0) {
+        Object.assign(userPayload, farmerResult.rows[0]);
+      }
+    }
+    res.json(userPayload);
+  } catch (err) {
+    console.error(err);
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Phone number already exists' });
+    }
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
 router.put('/change-password', authenticate, async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   if (!oldPassword || !newPassword) {
